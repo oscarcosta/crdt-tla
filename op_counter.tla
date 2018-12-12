@@ -1,81 +1,97 @@
 ------------------------------- MODULE op_counter ------------------------------
-EXTENDS Integers, TLC, Sequences
-CONSTANTS 
-  N
-  P == 1..N
+EXTENDS Integers, Sequences, TLC
+CONSTANTS N
+
+Procs == 1..N
 
 (*
 --algorithm op_counter
 variables
-  msg = [m \in P |-> 0]; \*simulate broadcast
+  ops = [m \in Procs |-> <<>>]; \* utilized to broadcast the operations
 
-macro Broadcast(v) begin  \*simulate broadcast
-  msg := [m \in P |-> v];
-end macro; 
+macro Broadcast(o) begin
+  ops := [m \in Procs |-> Append(ops[m], o)]; \* send the operation to all
+end macro;
 
-fair process Counter \in P
+macro Update(v) begin \* receive the operation
+  if Len(ops[self]) > 0 then
+    if Head(ops[self]) = "I" then
+      v := v + 1; 
+    elsif Head(ops[self]) = "D" then
+      v := v + 1;
+    end if;
+    ops[self] := Tail(ops[self]); \* clean received msg
+  end if;
+end macro;
+
+process Counter \in Procs
 variables
-  count = 0; \*local counter
-begin Update:
-  either Increment:
-    count := count + 1;
-    Broadcast(count);
-  or Decrement:
-    count := count - 1;
-    Broadcast(count);
-  end either;
+  count = 0; \* local counter
+begin Main:
+  while TRUE do
+    Update(count);
+    either Increment:
+      Broadcast("I");
+    or Decrement:
+      Broadcast("D");
+    end either;
+  end while;  
 end process;
 
 end algorithm;
 *)
 \* BEGIN TRANSLATION
-VARIABLES msg, pc, count
+VARIABLES ops, pc, count
 
-vars == << msg, pc, count >>
+vars == << ops, pc, count >>
 
-ProcSet == (P)
+ProcSet == (Procs)
 
 Init == (* Global variables *)
-        /\ msg = [m \in P |-> 0]
+        /\ ops = [m \in Procs |-> <<>>]
         (* Process Counter *)
-        /\ count = [self \in P |-> 0]
-        /\ pc = [self \in ProcSet |-> "Update"]
+        /\ count = [self \in Procs |-> 0]
+        /\ pc = [self \in ProcSet |-> "Main"]
 
-Update(self) == /\ pc[self] = "Update"
-                /\ \/ /\ pc' = [pc EXCEPT ![self] = "Increment"]
-                   \/ /\ pc' = [pc EXCEPT ![self] = "Decrement"]
-                /\ UNCHANGED << msg, count >>
+Main(self) == /\ pc[self] = "Main"
+              /\ IF Len(ops[self]) > 0
+                    THEN /\ IF Head(ops[self]) = "I"
+                               THEN /\ count' = [count EXCEPT ![self] = count[self] + 1]
+                               ELSE /\ IF Head(ops[self]) = "D"
+                                          THEN /\ count' = [count EXCEPT ![self] = count[self] + 1]
+                                          ELSE /\ TRUE
+                                               /\ count' = count
+                         /\ ops' = [ops EXCEPT ![self] = Tail(ops[self])]
+                    ELSE /\ TRUE
+                         /\ UNCHANGED << ops, count >>
+              /\ \/ /\ pc' = [pc EXCEPT ![self] = "Increment"]
+                 \/ /\ pc' = [pc EXCEPT ![self] = "Decrement"]
 
 Increment(self) == /\ pc[self] = "Increment"
-                   /\ count' = [count EXCEPT ![self] = count[self] + 1]
-                   /\ msg' = [m \in P |-> count'[self]]
-                   /\ pc' = [pc EXCEPT ![self] = "Done"]
+                   /\ ops' = [m \in Procs |-> Append(ops[m], "I")]
+                   /\ pc' = [pc EXCEPT ![self] = "Main"]
+                   /\ count' = count
 
 Decrement(self) == /\ pc[self] = "Decrement"
-                   /\ count' = [count EXCEPT ![self] = count[self] - 1]
-                   /\ msg' = [m \in P |-> count'[self]]
-                   /\ pc' = [pc EXCEPT ![self] = "Done"]
+                   /\ ops' = [m \in Procs |-> Append(ops[m], "D")]
+                   /\ pc' = [pc EXCEPT ![self] = "Main"]
+                   /\ count' = count
 
-Counter(self) == Update(self) \/ Increment(self) \/ Decrement(self)
+Counter(self) == Main(self) \/ Increment(self) \/ Decrement(self)
 
-Next == (\E self \in P: Counter(self))
-           \/ (* Disjunct to prevent deadlock on termination *)
-              ((\A self \in ProcSet: pc[self] = "Done") /\ UNCHANGED vars)
+Next == (\E self \in Procs: Counter(self))
 
-Spec == /\ Init /\ [][Next]_vars
-        /\ \A self \in P : WF_vars(Counter(self))
-
-Termination == <>(\A self \in ProcSet: pc[self] = "Done")
+Spec == Init /\ [][Next]_vars
 
 \* END TRANSLATION
 
 \* Eventual Convergence:
 \* Safety: ∀i, j : C(xi) = C(xj) implies that the abstract states of i and j are equivalent.
-Safety == (\A k,l \in P: msg[k] = msg[l])
+Safety == (\A i,j \in Procs: count[i] = count[j])
 \* Liveness: ∀i, j : f ∈ C(xi) implies that, eventually, f ∈ C(xj). 
-Liveness == <>(\A k \in P: count[k] = msg[k])
+Liveness == <>(\A i, j \in Procs: count[i] = count[j])
 
 ================================================================================
 \* Modification History
-\* Last modified Sun Dec 09 19:15:24 PST 2018 by ocosta
+\* Last modified Wed Dec 12 15:22:32 PST 2018 by ocosta
 \* Created Sat Dec 01 16:58:15 PST 2018 by ocosta

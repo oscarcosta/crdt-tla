@@ -7,20 +7,22 @@ Procs == 1..N
 (*
 --algorithm op_counter
 variables
-  ops = [m \in Procs |-> <<>>]; \* utilized to broadcast the operations
+  ops = [j \in Procs |-> <<>>]; \* to broadcast operations
 
+\* send a operation to all
 macro Broadcast(o) begin
-  ops := [m \in Procs |-> Append(ops[m], o)]; \* send the operation to all
+  ops := [j \in Procs |-> Append(ops[j], o)];
 end macro;
 
-macro Update(v) begin \* receive the operation
+\* receive and process operations, one by one
+macro Update(v) begin
   if Len(ops[self]) > 0 then
     if Head(ops[self]) = "I" then
       v := v + 1; 
     elsif Head(ops[self]) = "D" then
       v := v + 1;
     end if;
-    ops[self] := Tail(ops[self]); \* clean received msg
+    ops[self] := Tail(ops[self]); \* clear processed operation
   end if;
 end macro;
 
@@ -48,7 +50,7 @@ vars == << ops, pc, count >>
 ProcSet == (Procs)
 
 Init == (* Global variables *)
-        /\ ops = [m \in Procs |-> <<>>]
+        /\ ops = [j \in Procs |-> <<>>]
         (* Process Counter *)
         /\ count = [self \in Procs |-> 0]
         /\ pc = [self \in ProcSet |-> "Main"]
@@ -68,12 +70,12 @@ Main(self) == /\ pc[self] = "Main"
                  \/ /\ pc' = [pc EXCEPT ![self] = "Decrement"]
 
 Increment(self) == /\ pc[self] = "Increment"
-                   /\ ops' = [m \in Procs |-> Append(ops[m], "I")]
+                   /\ ops' = [j \in Procs |-> Append(ops[j], "I")]
                    /\ pc' = [pc EXCEPT ![self] = "Main"]
                    /\ count' = count
 
 Decrement(self) == /\ pc[self] = "Decrement"
-                   /\ ops' = [m \in Procs |-> Append(ops[m], "D")]
+                   /\ ops' = [j \in Procs |-> Append(ops[j], "D")]
                    /\ pc' = [pc EXCEPT ![self] = "Main"]
                    /\ count' = count
 
@@ -93,5 +95,5 @@ Liveness == <>(\A i, j \in Procs: count[i] = count[j])
 
 ================================================================================
 \* Modification History
-\* Last modified Wed Dec 12 15:22:32 PST 2018 by ocosta
+\* Last modified Wed Dec 12 17:53:13 PST 2018 by ocosta
 \* Created Sat Dec 01 16:58:15 PST 2018 by ocosta

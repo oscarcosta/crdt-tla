@@ -89,11 +89,10 @@ Spec == Init /\ [][Next]_vars
 
 \* Eventual Convergence:
 \* Safety: ∀i, j : C(xi) = C(xj) implies that the abstract states of i and j are equivalent.
-Safety == (\A i,j \in Procs: count[i] = count[j])
 \* Liveness: ∀i, j : f ∈ C(xi) implies that, eventually, f ∈ C(xj). 
-Liveness == <>(\A i, j \in Procs: count[i] = count[j])
+Convergence == (\A i,j \in Procs: count[i] = count[j])
 
 ================================================================================
 \* Modification History
-\* Last modified Wed Dec 12 17:53:13 PST 2018 by ocosta
+\* Last modified Thu Dec 13 17:11:59 PST 2018 by ocosta
 \* Created Sat Dec 01 16:58:15 PST 2018 by ocosta

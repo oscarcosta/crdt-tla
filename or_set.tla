@@ -124,7 +124,12 @@ Spec == Init /\ [][Next]_vars
 
 \* END TRANSLATION
 
+\* Eventual Convergence:
+\* Safety: ∀i, j : C(xi) = C(xj) implies that the abstract states of i and j are equivalent.
+\* Liveness: ∀i, j : f ∈ C(xi) implies that, eventually, f ∈ C(xj). 
+Convergence == (\A i,j \in Procs: set[i] = set[j])
+
 ================================================================================
 \* Modification History
-\* Last modified Wed Dec 12 17:54:27 PST 2018 by ocosta
+\* Last modified Thu Dec 13 17:12:10 PST 2018 by ocosta
 \* Created Sat Dec 01 19:34:11 PST 2018 by ocosta

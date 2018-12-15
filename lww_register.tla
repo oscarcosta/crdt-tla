@@ -36,12 +36,8 @@ end macro;
 \* receive the payload
 macro _Receive() begin
   if msgs[self] /= INITIAL then
-    print ToString(self) \o " received " \o ToString(msgs[self]);
-    if payload = INITIAL then \* payload is empty, just receive the message
-      payload := msgs[self];
-    else \* merge the payload and received message
-      payload := _Merge(payload, msgs[self]);
-    end if; 
+    print ToString(self) \o " received " \o ToString(msgs[self]) \o "; current payload " \o ToString(payload);
+    payload := _Merge(payload, msgs[self]); 
     msgs[self] := INITIAL;
     print ToString(self) \o " merged " \o ToString(payload);
   end if;
@@ -73,7 +69,7 @@ VARIABLES msgs, pc
 (* define statement *)
 _Compare(p1, p2) == p1.t <= p2.t
 
-_Merge(p1, p2) == IF _Compare(p1, p2) THEN p1 ELSE p2
+_Merge(p1, p2) == IF _Compare(p1, p2) THEN p2 ELSE p1
 
 VARIABLES i, payload
 
@@ -119,10 +115,8 @@ Send(self) == /\ pc[self] = "Send"
 
 Receive(self) == /\ pc[self] = "Receive"
                  /\ IF msgs[self] /= INITIAL
-                       THEN /\ PrintT(ToString(self) \o " received " \o ToString(msgs[self]))
-                            /\ IF payload[self] = INITIAL
-                                  THEN /\ payload' = [payload EXCEPT ![self] = msgs[self]]
-                                  ELSE /\ payload' = [payload EXCEPT ![self] = _Merge(payload[self], msgs[self])]
+                       THEN /\ PrintT(ToString(self) \o " received " \o ToString(msgs[self]) \o "; current payload " \o ToString(payload[self]))
+                            /\ payload' = [payload EXCEPT ![self] = _Merge(payload[self], msgs[self])]
                             /\ msgs' = [msgs EXCEPT ![self] = INITIAL]
                             /\ PrintT(ToString(self) \o " merged " \o ToString(payload'[self]))
                        ELSE /\ TRUE
@@ -146,5 +140,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 ================================================================================
 \* Modification History
-\* Last modified Fri Dec 14 18:21:25 PST 2018 by ocosta
+\* Last modified Fri Dec 14 19:00:11 PST 2018 by ocosta
 \* Created Fri Dec 14 16:18:39 PST 2018 by ocosta

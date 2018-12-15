@@ -12,9 +12,9 @@ variables
   msgs = [j \in Procs |-> INITIAL]; \* to send the messages
 
 define
-  _Compare(p1, p2) == p1.t <= p2.t
+  _Compare(p1, p2) == p1.t <= p2.t \* return TRUE if timestamp_1 <= timestamp_2
   
-  _Merge(p1, p2) == IF _Compare(p1, p2) THEN p1 ELSE p2
+  _Merge(p1, p2) == IF _Compare(p1, p2) THEN p2 ELSE p1
 end define;
 
 \* assign a value and timestamp into local payload
@@ -146,5 +146,5 @@ Termination == <>(\A self \in ProcSet: pc[self] = "Done")
 
 ================================================================================
 \* Modification History
-\* Last modified Fri Dec 14 17:44:05 PST 2018 by ocosta
+\* Last modified Fri Dec 14 18:21:25 PST 2018 by ocosta
 \* Created Fri Dec 14 16:18:39 PST 2018 by ocosta
